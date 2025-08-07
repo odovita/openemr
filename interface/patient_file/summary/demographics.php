@@ -61,6 +61,7 @@ use OpenEMR\Patient\Cards\CarePlanViewCard;
 use OpenEMR\Patient\Cards\CareTeamViewCard;
 use OpenEMR\Patient\Cards\DemographicsViewCard;
 use OpenEMR\Patient\Cards\InsuranceViewCard;
+use OpenEMR\Patient\Cards\PatientRelationshipViewCard;
 use OpenEMR\Patient\Cards\PortalCard;
 use OpenEMR\Patient\Cards\TreatmentPreferenceViewCard;
 use OpenEMR\Reminder\BirthdayReminder;
@@ -386,7 +387,7 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
 
 <head>
     <?php
-    Header::setupHeader(['common', 'utility']);
+    Header::setupHeader(['common', 'utility', 'jquery-ui']);
     require_once($srcdir . "/options.js.php");
     ?>
     <script>
@@ -1381,6 +1382,10 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
                         $sectionRenderEvents->addCard(new InsuranceViewCard($pid, $request, ['dispatcher' => $ed]));
                     }
 
+                    // Add patient relationships card
+                    if (!in_array('card_patient_relationships', $hiddenCards)) {
+                        $sectionRenderEvents->addCard(new PatientRelationshipViewCard($result, ['dispatcher' => $ed]));
+                    }
                     // Get the cards to render
                     $sectionCards = $sectionRenderEvents->getCards();
 
