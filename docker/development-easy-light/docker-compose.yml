@@ -41,7 +41,8 @@ services:
     - phpstanvolume:/var/www/localhost/htdocs/openemr/tmp-phpstan:rw
     - webpackcachevolume:/var/www/localhost/htdocs/openemr/.webpack-cache:rw
     - logvolume:/var/log
-    - couchdbvolume:/couchdb/data
+    - couchdbvolume:/couchdb/data    
+    - /var/www/localhost/htdocs/openemr/.git/objects
     environment:
       # HOST_UID/HOST_GID let the entrypoint adopt the host user's uid for
       # apache (see docker/flex/openemr.sh — adoption is a no-op when these
