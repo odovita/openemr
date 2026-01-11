@@ -58,8 +58,6 @@ switch ($search_any_type) {
                 <div data-bind="with: patient" class="patientPicture">
                     <img data-bind="attr: {src: patient_picture}"
                         class="img-thumbnail"
-                        width="75"
-                        height="75"
                         onError="this.src = '<?php echo OEGlobalsBag::getInstance()->getKernel()->getImagesRelative(); ?>/patient-picture-default.png'" />
                 </div>
                 <!-- /ko -->
