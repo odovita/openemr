@@ -27,7 +27,7 @@ Install directly from this repository instead of the official OpenEMR:
 ```bash
 git clone https://github.com/[your-username]/openemr.git
 cd openemr
-git checkout production-rel-8_0_0_3
+git checkout production-rel-8_4_1
 # Follow standard OpenEMR installation process
 ```
 
@@ -40,7 +40,7 @@ We welcome contributions! Please follow our branching strategy below to ensure c
 ### Main Branches
 
 -   **`upstream-sync-<version>`** - Clean mirror of official OpenEMR version branch (e.g., `upstream-sync-8_0_0`)
--   **`production-rel-<version>`** - Our deployment branch for a given upstream version (e.g., `production-rel-8_0_0_3`)
+-   **`production-rel-<version>`** - Our deployment branch for a given upstream version (e.g., `production-rel-8_4_1`)
 
 ### The Process
 
@@ -60,7 +60,7 @@ git fetch upstream --tags
 
 **IMPORTANT**: Never sync with upstream's `master` branch — it contains unreleased code. Always sync with official release tags or release branches.
 
-Preferred: pin to a specific release tag (e.g., `v8_0_0_3`) for reproducibility.
+Preferred: pin to a specific release tag (e.g., `v8_4_1`) for reproducibility.
 
 ```bash
 # 1. Determine the latest stable release version
@@ -68,23 +68,23 @@ Preferred: pin to a specific release tag (e.g., `v8_0_0_3`) for reproducibility.
 
 # 2. Create a new production branch from the upstream release tag
 git fetch upstream --tags
-git checkout -b production-rel-8_0_0_3 v8_0_0_3
+git checkout -b production-rel-8_4_1 v8_4_1
 
 # 3. Cherry-pick our custom commits from the previous production branch
 #    in chronological order. Use:
-git log --reverse --format="%h %ai %s" upstream/rel-704..production-rel-7_0_4_1
+git log --reverse --format="%h %ai %s" v8_0_0_3..production-rel-8_0_0_3
 #    then cherry-pick each commit (skip any that have since been merged
 #    upstream — see "Custom Commits Overview" below).
 
 # 4. Push the new branch
-git push -u origin production-rel-8_0_0_3
+git push -u origin production-rel-8_4_1
 ```
 
 ### Creating a New Feature/Fix
 
 ```bash
 # 1. Start from the current production branch
-git checkout production-rel-8_0_0_3
+git checkout production-rel-8_4_1
 
 # 2. Create feature branch
 git checkout -b feature/your-feature-name
@@ -97,9 +97,9 @@ git commit -m "Fix: your changes"
 git push -u origin feature/your-feature-name
 
 # 5. Merge into the production branch when ready
-git checkout production-rel-8_0_0_3
+git checkout production-rel-8_4_1
 git merge feature/your-feature-name
-git push origin production-rel-8_0_0_3
+git push origin production-rel-8_4_1
 ```
 
 ### Creating PR to Upstream (Optional)
@@ -114,65 +114,34 @@ Only create PRs for features that would benefit the broader OpenEMR community:
 ### Important Notes
 
 -   **Never sync with upstream's `master` branch** — it contains unreleased, unstable code
--   **Always sync with versioned release tags** (e.g., `v8_0_0_3`) for reproducibility
+-   **Always sync with versioned release tags** (e.g., `v8_4_1`) for reproducibility
 -   **Never use GitHub's "Sync fork" button** — it creates messy merge commits
 -   Always create feature branches from the current `production-rel-<version>` branch for clean history
 -   Deploy manually from the appropriate `production-rel-<version>` branch when changes are stable
 
 ## Build Production Image From odovita/openemr
 
-The steps below live in the `openemr-devops` tooling repo but build the application from this fork.
+Since 8.1 the production image is built from `docker/release/` inside this repository; the old `docker/openemr/<version>` contexts in `openemr-devops` were deleted upstream in June 2026 (the local `odovita-deployment` branch of openemr-devops still carries the 8.0.0.3 context used for the last 8.0.0.3 images). The Dockerfile clones the source from a repository and ref given as build arguments, so no copy of the context is needed any more.
 
-1. Clone the tooling repo and enter it:
-
-    ```bash
-    git clone https://github.com/openemr/openemr-devops.git
-    cd openemr-devops
-    ```
-
-2. Find the correct version directory (e.g., 8.0.0) and copy it:
+1. Check out the production branch of this fork and build from its `docker/release` context. `OPENEMR_REPO` and `OPENEMR_VERSION` select what gets cloned into the image (the fork adds `OPENEMR_REPO`; upstream only has `OPENEMR_VERSION`):
 
     ```bash
-    cp -a docker/openemr/8.0.0 docker/openemr/8.0.0-odovita
-    ```
-
-3. Edit `docker/openemr/8.0.0-odovita/Dockerfile` and change the `git clone` line to pull from our fork's production branch:
-
-    ```Dockerfile
-    RUN apk add --no-cache build-base \
-        && git clone --branch production-rel-8_0_0_3 https://github.com/odovita/openemr.git --depth 1 \
-        && rm -rf openemr/.git \
-        && cd openemr \
-        ...
-    ```
-
-    Keep the rest of the build block unchanged so Composer/NPM steps remain identical to the official image.
-
-4. Build the Docker image through the bundled `docker compose` stack:
-
-    ```bash
-    cd docker/openemr
-    export DOCKER_CONTEXT_PATH=8.0.0-odovita
-    COMPOSE_PROFILES=prod docker compose build
-    ```
-
-5. (Optional) Smoke-test the container with MariaDB:
-
-    ```bash
-    COMPOSE_PROFILES=prod docker compose up -d --wait
-    # browse http://localhost:8080 or inspect logs
-    docker compose logs openemr
-    docker compose down --volumes
-    ```
-
-6. Push a multi-arch image to your registry when you are ready:
-
-    ```bash
+    git checkout production-rel-8_4_1
     docker buildx build \
-      --platform linux/amd64,linux/arm64 \
-      -t ghcr.io/odovita/openemr:8.0.0-odovita \
-      --push docker/openemr/8.0.0-odovita
+      --platform linux/amd64 \
+      --build-arg OPENEMR_REPO=https://github.com/odovita/openemr.git \
+      --build-arg OPENEMR_VERSION=production-rel-8_4_1 \
+      -t ghcr.io/odovita/openemr:production-8.4.1 \
+      docker/release
     ```
+
+    `PHP_VERSION` and `ALPINE_VERSION` default to what upstream ships for this release; override them only for security pins (as was done for php2shell in October 2026).
+
+2. (Optional) Smoke-test the image with the compose file in `docker/production/` before pushing.
+
+3. Push to the registry (`--push`) when you are ready, then roll out on the Lightsail host (`~/lightsail`, `sudo docker-compose pull && sudo docker-compose up -d`).
+
+4. Run the database upgrade once after the first start on the new version (Administration → Upgrade, or `sql_upgrade.php`), and apply `sql/patient-to-patient-relationships.sql` if the site does not have the `patient_relationships` table yet (see "Custom Commits Overview").
 
 ### Keeping The Fork Updated
 
@@ -200,7 +169,9 @@ When rebasing/cherry-picking our custom commits onto a new upstream version, be 
 
 #### Patient-to-Patient Relationships Feature
 - **Description**: Custom feature allowing linking patients to each other (e.g., family relationships)
-- **Commits**: `e50889c42` + `108693d6c` (tests) + `7902b5248` (fork-specific tweaks) + `77c0d9841` (BS5 modal fix)
+- **Commits on `production-rel-8_4_1`**: `8822946190` + `028d2234b6` (tests) + `44d8bd5bf7` (fork-specific tweaks) + `ffca13bdd0` (BS5 modal fix)
+- **Schema**: `sql/patient-to-patient-relationships.sql` is NOT applied by the regular upgrade. Run it once per site (fresh install or new database) from the web root, e.g. inside the container:
+  `php -r 'require "interface/globals.php"; require "library/sql_upgrade_fx.php"; upgradeFromSqlFile("patient-to-patient-relationships.sql");'`
 - **Files added**:
   - `src/Services/PatientRelationshipService.php`
   - `src/Entity/PatientRelationship.php`
@@ -217,7 +188,7 @@ When rebasing/cherry-picking our custom commits onto a new upstream version, be 
 
 #### Patient Photo Webcam Capture
 - **Description**: Capture patient photos via webcam directly from the new-patient form and the demographics view; click-to-view existing photos
-- **Commits**: `4fc7019be` + `fdd8f0dd8` + `57846d98e` (SystemLogger import fix) + `7577d73ec` (button styling)
+- **Commits on `production-rel-8_4_1`**: `8ce94467c2` + `db0d49d3f8` + `c7c5425458` (SystemLogger import fix, a no-op on 8.4.1) + `1b35c0bfbf` (button styling)
 - **Files added**:
   - `library/js/webcam-capture.js`
   - `library/ajax/save_patient_photo.php`
@@ -236,10 +207,17 @@ When rebasing/cherry-picking our custom commits onto a new upstream version, be 
 - **Files modified**:
   - `docker/development-easy-light/docker-compose.yml`
 - **Status**: Development convenience, may or may not be needed depending on upstream changes
-- **Note**: This change rides along inside `7902b5248` rather than as a standalone commit
+- **Note**: This change rides along inside `44d8bd5bf7` rather than as a standalone commit
+
+#### Dispense Flow Refactor + Lot Picker (upstream PR #12098)
+- **Description**: Unified "Save and Dispense" flow, lot picker with the `restrict_sales_to_default_warehouse` global, sales/inventory reversal on prescription delete, bottle-label page `interface/drugs/print_drug_label.php`, `drugs.inc.php` reduced to `interface/drugs/inventory_acl.inc.php`
+- **Commit on `production-rel-8_4_1`**: `da525d3dca` — a squashed backport of https://github.com/openemr/openemr/pull/12098 (22 commits on master, head `c4461b32fe` at the time)
+- **Status**: Open upstream PR. On the next sync check whether it has been merged into the target release; if so, drop this commit instead of cherry-picking it. If it is still open, regenerate the squash from the PR branch (`git diff <merge-base> <pr-branch> | git apply -3`) rather than re-resolving the 8.4.1 conflicts by hand.
+- **Differences to master**: `DrugSalesService::send_drug_email()` keeps PHPMailer (MyMailer only exists after 8.4.1); the PHPStan baseline changes of the PR are not carried.
+- **New global**: "Restrict Drug Sales to Default Warehouse" (Features), default on. Clinics without configured warehouses behave as before.
 
 ### Branch Management
 
-- **Backup branches**: `production-rel-7_0_3_4-squashed` (4 squashed commits from the 7.0.3 era), `production-rel-7_0_4_1` (8 custom commits on top of rel-704)
-- **Production branches**: Named `production-rel-X_Y_Z` (e.g., `production-rel-8_0_0_3`)
+- **Backup branches**: `production-rel-7_0_3_4-squashed` (4 squashed commits from the 7.0.3 era), `production-rel-7_0_4_1` (8 custom commits on top of rel-704), `production-rel-8_0_0_3` (the 8.0.0.3 base), `feat/dispense-lot-picker-prod-8003` (8.0.0.3 + the May 2026 dispense work, deployed until the 8.4.1 rollout)
+- **Production branches**: Named `production-rel-X_Y_Z` (e.g., `production-rel-8_4_1`)
 - Always check if fixes have been merged upstream before cherry-picking
