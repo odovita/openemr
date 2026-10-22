@@ -6,99 +6,21 @@
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-//
-// Modified 7-2009 by BM in order to migrate using the form,
-// unit, route, and interval lists with the
-// functions in openemr/library/options.inc.php .
-// These lists are based on the constants found in the
-// openemr/library/classes/Prescription.class.php file.
+
+/*
+ * Inventory facility/warehouse access-control helpers used by the drug
+ * inventory admin UI, the in-house pharmacy reports, and the FeeSheet's
+ * product-line picker. Slated for migration into a WarehouseAccessService;
+ * kept as global functions for now to avoid touching the 14 call sites
+ * across drugs, reports, and FeeSheet in this refactor.
+ */
 
 use OpenEMR\Common\Session\SessionWrapperFactory;
-use OpenEMR\Core\OEGlobalsBag;
-use OpenEMR\Services\DrugSalesService;
-use PHPMailer\PHPMailer\PHPMailer;
-
-// Decision was made in June 2013 that a sale line item in the Fee Sheet may
-// come only from the specified warehouse. Set this to false if the decision
-// is reversed.
-OEGlobalsBag::getInstance()->set('SELL_FROM_ONE_WAREHOUSE', true);
 
 $substitute_array = ['', xl('Allowed'), xl('Not Allowed')];
 
-function send_drug_email($subject, $body): void
-{
-    $recipient = OEGlobalsBag::getInstance()->getString('practice_return_email_path');
-    if (empty($recipient)) {
-        return;
-    }
-
-    $mail = new PHPMailer();
-    $mail->From = $recipient;
-    $mail->FromName = 'In-House Pharmacy';
-    $mail->isMail();
-    $mail->Host = "localhost";
-    $mail->Mailer = "mail";
-    $mail->Body = $body;
-    $mail->Subject = $subject;
-    $mail->AddAddress($recipient);
-    if (!$mail->Send()) {
-        error_log("There has been a mail error sending to " . errorLogEscape($recipient .
-        " " . $mail->ErrorInfo));
-    }
-}
-
-/**
- * @deprecated Use DrugSalesService::sellDrug instead.
- * @param $drug_id
- * @param $quantity
- * @param $fee
- * @param $patient_id
- * @param $encounter_id
- * @param $prescription_id
- * @param $sale_date
- * @param $user
- * @param $default_warehouse
- * @param $testonly
- * @param $expiredlots
- * @param $pricelevel
- * @param $selector
- * @return bool|int|void
- */
-function sellDrug(
-    $drug_id,
-    $quantity,
-    $fee,
-    $patient_id = 0,
-    $encounter_id = 0,
-    $prescription_id = 0,
-    $sale_date = '',
-    $user = '',
-    $default_warehouse = '',
-    $testonly = false,
-    &$expiredlots = null,
-    $pricelevel = '',
-    $selector = ''
-) {
-    $drugSalesService = new DrugSalesService();
-    return $drugSalesService->sellDrug(
-        $drug_id,
-        $quantity,
-        $fee,
-        $patient_id,
-        $encounter_id,
-        $prescription_id,
-        $sale_date,
-        $user,
-        $default_warehouse,
-        $testonly,
-        $expiredlots,
-        $pricelevel,
-        $selector
-    );
-}
-
 // Determine if facility and warehouse restrictions are applicable for this user.
-function isUserRestricted($userid = 0)
+function isUserRestricted($userid = 0): bool
 {
     if (!$userid) {
         $session = SessionWrapperFactory::getInstance()->getActiveSession();
@@ -112,7 +34,7 @@ function isUserRestricted($userid = 0)
 
 // Check if the user has access to the given facility.
 // Do not call this if user is not restricted!
-function isFacilityAllowed($facid, $userid = 0)
+function isFacilityAllowed($facid, $userid = 0): bool
 {
     if (!$userid) {
         $session = SessionWrapperFactory::getInstance()->getActiveSession();
@@ -138,7 +60,7 @@ function isFacilityAllowed($facid, $userid = 0)
 
 // Check if the user has access to the given warehouse within the given facility.
 // Do not call this if user is not restricted!
-function isWarehouseAllowed($facid, $whid, $userid = 0)
+function isWarehouseAllowed($facid, $whid, $userid = 0): bool
 {
     if (!$userid) {
         $session = SessionWrapperFactory::getInstance()->getActiveSession();

@@ -13,7 +13,7 @@
  */
 
 require_once("../globals.php");
-require_once("../drugs/drugs.inc.php");
+require_once("../drugs/inventory_acl.inc.php");
 
 use OpenEMR\Common\Csrf\CsrfUtils;
 use OpenEMR\Common\Session\SessionWrapperFactory;
