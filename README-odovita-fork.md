@@ -170,8 +170,9 @@ When rebasing/cherry-picking our custom commits onto a new upstream version, be 
 #### Patient-to-Patient Relationships Feature
 - **Description**: Custom feature allowing linking patients to each other (e.g., family relationships)
 - **Commits on `production-rel-8_4_1`**: `8822946190` + `028d2234b6` (tests) + `44d8bd5bf7` (fork-specific tweaks) + `ffca13bdd0` (BS5 modal fix)
-- **Schema**: `sql/patient-to-patient-relationships.sql` is NOT applied by the regular upgrade. Run it once per site (fresh install or new database) from the web root, e.g. inside the container:
-  `php -r 'require "interface/globals.php"; require "library/sql_upgrade_fx.php"; upgradeFromSqlFile("patient-to-patient-relationships.sql");'`
+- **Schema**: `sql/patient-to-patient-relationships.sql` is NOT applied by the regular upgrade. Run it once per site (fresh install or new database) from the web root as the web-server user (8.4 refuses the CLI as root), e.g. inside the container:
+  `docker compose exec -u apache openemr sh -c 'cd /var/www/localhost/htdocs/openemr && php -r '"'"'$_GET["site"]="default"; $ignoreAuth=true; require_once "interface/globals.php"; require_once "library/sql_upgrade_fx.php"; upgradeFromSqlFile("patient-to-patient-relationships.sql");'"'"''`
+  The file uses the `#IfNotTable` guards, so running it twice is harmless.
 - **Files added**:
   - `src/Services/PatientRelationshipService.php`
   - `src/Entity/PatientRelationship.php`
