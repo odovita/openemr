@@ -14,11 +14,13 @@ require_once("../../globals.php");
 
 use OpenEMR\Common\Acl\AclMain;
 use OpenEMR\Common\Csrf\CsrfUtils;
+use OpenEMR\Common\Session\SessionWrapperFactory;
 use OpenEMR\Services\PatientRelationshipService;
 use OpenEMR\Services\PatientService;
 use OpenEMR\Entity\PatientRelationship;
 
-if (!CsrfUtils::verifyCsrfToken($_POST["csrf_token_form"])) {
+$session = SessionWrapperFactory::getInstance()->getActiveSession();
+if (!CsrfUtils::verifyCsrfToken($_POST["csrf_token_form"] ?? '', $session)) {
     CsrfUtils::csrfNotVerified();
 }
 
@@ -29,32 +31,47 @@ if (!AclMain::aclCheckCore('patients', 'demo')) {
 header('Content-Type: application/json');
 
 $action = $_POST['action'] ?? 'create';
-$patient_id = $_SESSION['pid'] ?? '';
+$sessionPid = $session->get('pid');
 
-if (!$patient_id) {
+if (!is_numeric($sessionPid) || (int)$sessionPid <= 0) {
     echo json_encode(['success' => false, 'error' => 'No patient selected']);
     exit;
 }
 
 $relationshipService = new PatientRelationshipService(new PatientService());
 
+// The session and the patient picker carry pids; the relationships table
+// references patient_data.id, so resolve both ends to ids first.
+$patient_id = $relationshipService->patientIdForPid((int)$sessionPid);
+if ($patient_id === null) {
+    echo json_encode(['success' => false, 'error' => 'No patient selected']);
+    exit;
+}
+
 try {
     switch ($action) {
         case 'create':
-            $relatedPatientId = $_POST['related_patient_id'] ?? '';
+            $relatedPatientPid = $_POST['related_patient_id'] ?? '';
             $relationshipType = $_POST['relationship_type'] ?? '';
             $notes = $_POST['notes'] ?? '';
-            
-            if (!$relatedPatientId || !$relationshipType) {
+
+            if (!$relatedPatientPid || !$relationshipType) {
                 echo json_encode(['success' => false, 'error' => 'Related patient ID and relationship type are required']);
                 exit;
             }
-            
+
+            $relatedPatientId = is_numeric($relatedPatientPid) ? $relationshipService->patientIdForPid((int)$relatedPatientPid) : null;
+            if ($relatedPatientId === null) {
+                echo json_encode(['success' => false, 'error' => 'Related patient does not exist']);
+                exit;
+            }
+
+            $authUserId = $session->get('authUserID');
             $relationship = new PatientRelationship(
                 $patient_id,
-                (int)$relatedPatientId,
+                $relatedPatientId,
                 $relationshipType,
-                $_SESSION['authUserID'],
+                is_numeric($authUserId) ? (int)$authUserId : 0,
                 $notes
             );
             

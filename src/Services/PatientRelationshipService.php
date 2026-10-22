@@ -29,7 +29,7 @@ class PatientRelationshipService extends BaseService
     /**
      * Default constructor.
      */
-    public function __construct(PatientService $patientService = null)
+    public function __construct(?PatientService $patientService = null)
     {
         parent::__construct(self::PATIENT_RELATIONSHIPS_TABLE);
         UuidRegistry::createMissingUuidsForTables([self::PATIENT_RELATIONSHIPS_TABLE]);
@@ -54,11 +54,18 @@ class PatientRelationshipService extends BaseService
                 return $processingResult;
             }
 
-            // Verify both patients exist using PatientService
-            $patient = $this->patientService->findByPid($relationship->getPatientId());
-            $relatedPatient = $this->patientService->findByPid($relationship->getRelatedPatientId());
-            
-            if (empty($patient) || empty($relatedPatient)) {
+            // Verify both patients exist. The table's foreign keys reference
+            // patient_data.id (not pid), so the lookup is by id as well.
+            $patient = QueryUtils::fetchRecords(
+                "SELECT `id` FROM " . self::PATIENT_DATA_TABLE . " WHERE `id` = ?",
+                [$relationship->getPatientId()]
+            );
+            $relatedPatient = QueryUtils::fetchRecords(
+                "SELECT `id` FROM " . self::PATIENT_DATA_TABLE . " WHERE `id` = ?",
+                [$relationship->getRelatedPatientId()]
+            );
+
+            if ($patient === [] || $relatedPatient === []) {
                 $processingResult->setValidationMessages(['One or both patients do not exist']);
                 return $processingResult;
             }
@@ -89,6 +96,21 @@ class PatientRelationshipService extends BaseService
         }
 
         return $processingResult;
+    }
+
+    /**
+     * patient_relationships references patient_data.id, while the rest of
+     * OpenEMR (session, patient picker) addresses patients by pid. Resolve a
+     * pid to that id; null when no such patient exists.
+     */
+    public function patientIdForPid(int $pid): ?int
+    {
+        $row = QueryUtils::fetchRecords(
+            "SELECT `id` FROM " . self::PATIENT_DATA_TABLE . " WHERE `pid` = ?",
+            [$pid]
+        )[0] ?? null;
+        $id = is_array($row) ? ($row['id'] ?? null) : null;
+        return is_numeric($id) ? (int)$id : null;
     }
 
     /**
