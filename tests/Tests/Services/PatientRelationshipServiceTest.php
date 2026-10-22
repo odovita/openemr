@@ -2,6 +2,7 @@
 
 namespace OpenEMR\Tests\Services;
 
+use OpenEMR\Common\Database\QueryUtils;
 use OpenEMR\Entity\PatientRelationship;
 use OpenEMR\Services\PatientRelationshipService;
 use OpenEMR\Services\PatientService;
@@ -21,15 +22,23 @@ class PatientRelationshipServiceTest extends TestCase
 {
     private PatientRelationshipService $relationshipService;
     private FixtureManager $fixtureManager;
-    private array $patientFixtures;
+    /** @var list<int> patient_data.id values of the installed patient fixtures (the table references id, not pid) */
+    private array $patientIds = [];
 
     protected function setUp(): void
     {
         $this->fixtureManager = new FixtureManager();
         $this->relationshipService = new PatientRelationshipService(new PatientService());
-        
-        // Install patient fixtures for testing
-        $this->patientFixtures = $this->fixtureManager->installPatientFixtures();
+
+        // Install patient fixtures for testing. installPatientFixtures() only
+        // returns the insert count, so look the ids up by the fixture pubpid prefix.
+        $this->fixtureManager->installPatientFixtures();
+        $ids = QueryUtils::fetchTableColumn(
+            "SELECT `id` FROM `patient_data` WHERE `pubpid` LIKE ? ORDER BY `id`",
+            'id',
+            [FixtureManager::PATIENT_FIXTURE_PUBPID_PREFIX . '%']
+        );
+        $this->patientIds = array_values(array_map('intval', $ids));
     }
 
     protected function tearDown(): void
@@ -47,7 +56,7 @@ class PatientRelationshipServiceTest extends TestCase
 
     public function testCreateValidRelationship()
     {
-        $patientIds = array_keys($this->patientFixtures);
+        $patientIds = $this->patientIds;
         if (count($patientIds) < 2) {
             $this->markTestSkipped('Need at least 2 patient fixtures for relationship testing');
         }
@@ -109,7 +118,7 @@ class PatientRelationshipServiceTest extends TestCase
     public function testGetPatientRelationships()
     {
         // First create a test relationship
-        $patientIds = array_keys($this->patientFixtures);
+        $patientIds = $this->patientIds;
         if (count($patientIds) < 2) {
             $this->markTestSkipped('Need at least 2 patient fixtures for relationship testing');
         }
@@ -145,7 +154,7 @@ class PatientRelationshipServiceTest extends TestCase
     public function testDeleteRelationship()
     {
         // First create a test relationship
-        $patientIds = array_keys($this->patientFixtures);
+        $patientIds = $this->patientIds;
         if (count($patientIds) < 2) {
             $this->markTestSkipped('Need at least 2 patient fixtures for relationship testing');
         }
@@ -203,7 +212,7 @@ class PatientRelationshipServiceTest extends TestCase
     public function testBidirectionalRelationshipQuery()
     {
         // Create relationships in both directions
-        $patientIds = array_keys($this->patientFixtures);
+        $patientIds = $this->patientIds;
         if (count($patientIds) < 2) {
             $this->markTestSkipped('Need at least 2 patient fixtures for relationship testing');
         }

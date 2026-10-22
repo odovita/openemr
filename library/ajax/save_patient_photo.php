@@ -14,12 +14,14 @@ require_once(__DIR__ . "/../../interface/globals.php");
 
 use OpenEMR\Common\Acl\AclMain;
 use OpenEMR\Common\Csrf\CsrfUtils;
+use OpenEMR\Common\Session\SessionWrapperFactory;
 use OpenEMR\Services\PatientPhotoService;
 
 header('Content-Type: application/json');
 
 // Verify CSRF token
-if (!CsrfUtils::verifyCsrfToken($_POST["csrf_token"] ?? '')) {
+$session = SessionWrapperFactory::getInstance()->getActiveSession();
+if (!CsrfUtils::verifyCsrfToken($_POST["csrf_token"] ?? '', $session)) {
     http_response_code(403);
     echo json_encode(['success' => false, 'error' => 'CSRF token validation failed']);
     exit;

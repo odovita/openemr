@@ -12,9 +12,11 @@
 
 namespace OpenEMR\Patient\Cards;
 
+use OpenEMR\Common\Acl\AclMain;
+use OpenEMR\Common\Csrf\CsrfUtils;
+use OpenEMR\Common\Session\SessionWrapperFactory;
 use OpenEMR\Events\Patient\Summary\Card\CardModel;
 use OpenEMR\Events\Patient\Summary\Card\RenderEvent;
-use OpenEMR\Common\Acl\AclMain;
 use OpenEMR\Services\PatientRelationshipService;
 use OpenEMR\Services\PatientService;
 
@@ -42,7 +44,7 @@ class PatientRelationshipViewCard extends CardModel
         $opts['linkMethod'] = 'javascript';
         $opts['edit'] = true;
         $opts['add'] = true;
-        $opts['requireRestore'] = (!isset($_SESSION['patient_portal_onsite_two'])) ? true : false;
+        $opts['requireRestore'] = !SessionWrapperFactory::getInstance()->getActiveSession()->has('patient_portal_onsite_two');
         $opts['initiallyCollapsed'] = getUserSetting(self::CARD_ID . "_ps_expand") == 1 ? false : true;
         $opts['identifier'] = self::CARD_ID;
         $opts['templateFile'] = self::TEMPLATE_FILE;
@@ -77,8 +79,9 @@ class PatientRelationshipViewCard extends CardModel
             $relationshipTypes = $this->relationshipService->getRelationshipTypes();
         }
 
+        $session = SessionWrapperFactory::getInstance()->getActiveSession();
         $viewArgs = [
-            'requireRestore' => (!isset($_SESSION['patient_portal_onsite_two'])) ? true : false,
+            'requireRestore' => !$session->has('patient_portal_onsite_two'),
             'initiallyCollapsed' => (getUserSetting(self::CARD_ID . '_ps_expand') == 1) ? false : true,
             'tabID' => "REL",
             'title' => xl("Patient Relationships"),
@@ -88,7 +91,7 @@ class PatientRelationshipViewCard extends CardModel
             'linkMethod' => 'javascript',
             'auth' => $auth,
             'patient_id' => $patientId ?? '',
-            'csrf_token' => \OpenEMR\Common\Csrf\CsrfUtils::collectCsrfToken(),
+            'csrf_token' => CsrfUtils::collectCsrfToken($session),
             'relationships' => $relationships,
             'relationship_types' => $relationshipTypes,
             'prependedInjection' => $dispatchResult->getPrependedInjection(),
