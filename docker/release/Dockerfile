@@ -153,13 +153,17 @@ RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/bin -
 # Use git clone instead of GitHub archive because OpenEMR's .gitattributes
 # marks tests/, phpunit*.xml, and other dev files as export-ignore, which
 # excludes them from archives but not from clones.
-# Supports branches or tags via OPENEMR_VERSION build argument.
+# Supports branches or tags via OPENEMR_VERSION build argument, and another
+# repository (e.g. the odovita fork) via OPENEMR_REPO.
 # Examples:
 #   - Branch: --build-arg OPENEMR_VERSION=master
 #   - Tag:    --build-arg OPENEMR_VERSION=v7.0.5
+#   - Fork:   --build-arg OPENEMR_REPO=https://github.com/odovita/openemr.git \
+#             --build-arg OPENEMR_VERSION=production-rel-8_4_1
 ARG OPENEMR_VERSION=rel-840
+ARG OPENEMR_REPO=https://github.com/openemr/openemr.git
 FROM base AS openemr-source
-RUN git clone https://github.com/openemr/openemr.git --branch "${OPENEMR_VERSION}" --depth 1 \
+RUN git clone "${OPENEMR_REPO}" --branch "${OPENEMR_VERSION}" --depth 1 \
     && rm -rf openemr/.git
 
 # Stage 2: Install PHP dependencies (Composer)
