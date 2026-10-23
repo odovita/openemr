@@ -215,7 +215,7 @@ When rebasing/cherry-picking our custom commits onto a new upstream version, be 
 - **Commit on `production-rel-8_4_1`**: `da525d3dca` — a squashed backport of https://github.com/openemr/openemr/pull/12098 (22 commits on master, head `c4461b32fe` at the time)
 - **Status**: Open upstream PR. On the next sync check whether it has been merged into the target release; if so, drop this commit instead of cherry-picking it. If it is still open, regenerate the squash from the PR branch (`git diff <merge-base> <pr-branch> | git apply -3`) rather than re-resolving the 8.4.1 conflicts by hand.
 - **Differences to master**: `DrugSalesService::send_drug_email()` keeps PHPMailer (MyMailer only exists after 8.4.1); the PHPStan baseline changes of the PR are not carried.
-- **New global**: "Restrict Drug Sales to Default Warehouse" (Features), default on. Clinics without configured warehouses behave as before.
+- **New global**: "Restrict Drug Sales to Default Warehouse" (Features), default on. It restricts users who have a default warehouse to that warehouse; a user without one is not restricted (legacy behaviour), and the dispense card shows a status line saying which case applies. Make sure every dispensing user at Odovita has a default warehouse set under Administration → Users.
 
 ### Branch Management
 
