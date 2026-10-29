@@ -193,7 +193,7 @@ When rebasing/cherry-picking our custom commits onto a new upstream version, be 
 
 #### Patient Photo Webcam Capture
 - **Description**: Capture patient photos via webcam directly from the new-patient form and the demographics view; click-to-view existing photos
-- **Commits on `production-rel-8_5_0`**: `a629cc1259` + `b14c84d077` + `c721786fb2` (SystemLogger import fix) + `5cf53eb0f9` (button styling); the `save_patient_photo.php` part of `1567890632` belongs to this feature as well
+- **Commits on `production-rel-8_5_0`**: `a629cc1259` + `b14c84d077` + `c721786fb2` (SystemLogger import fix) + `5cf53eb0f9` (button styling) + `4d02096912` (`?v=` cache buster on the script include, required by the 8.5.0 `AssetCacheBusterTest`); the `save_patient_photo.php` part of `1567890632` belongs to this feature as well
 - **Upstream PR**: https://github.com/openemr/openemr/pull/10157, open and unreviewed as of October 2026; the feature is not in 8.5.0
 - **Sync note**: all commits applied onto 8.5.0 without conflicts, including `interface/new/new_comprehensive.php` and `new_comprehensive_save.php`, which upstream keeps changing; re-check those two files first on every sync
 - **Files added**:
